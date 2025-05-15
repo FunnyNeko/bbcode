@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBCode 文字編輯器</title>
+  <style>
+    .favorite-styles-block {
+      margin: 8px 0 18px 0;
+      padding: 8px 0 0 0;
+      border-top: 1px solid #eee;
+    }
+    .fav-title {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    #favorite-styles {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 2px;
+    }
+    .fav-style-btn {
+      background: #f5f5f5;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 4px;
+      position: relative;
+      transition: background 0.2s, border 0.2s;
+    }
+    .fav-style-btn:hover {
+      background: #e3e3e3;
+      border: 1px solid #888;
+    }
+    .fav-style-remove {
+      position: absolute;
+      top: 1px;
+      right: 3px;
+      color: #c00;
+      font-size: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 2px;
+    }
+    .save-style-btn {
+      background: #ffc107;
+      color: #333;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 12px;
+      margin-left: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .save-style-btn:hover {
+      background: #ffb300;
+    }
+    body {
+      font-family: "Segoe UI", "Microsoft JhengHei", Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 32px 24px 24px 24px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .toolbar label {
+      font-size: 14px;
+      margin-right: 4px;
+    }
+    .toolbar select, .toolbar button {
+      padding: 4px 8px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+    .editor-area {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .bbcode-editor {
+      width: 100%;
+      min-height: 220px;
+      padding: 12px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      font-size: 16px;
+      resize: vertical;
+      font-family: inherit;
+      background: #fafafa;
+    }
+    .preview {
+      width: 45%;
+      min-height: 220px;
+      padding: 12px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      background: #fdf6e3;
+      font-size: 16px;
+      overflow-x: auto;
+      word-break: break-word;
+    }
+    .preview-title {
+      font-size: 15px;
+      color: #777;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    .copy-btn {
+      margin-top: 20px;
+      padding: 8px 20px;
+      font-size: 15px;
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover {
+      background: #005fa3;
+    }
+    @media (max-width: 900px) {
+      .editor-area {
+        flex-direction: column;
+      }
+      .preview {
+        width: 100%;
+        margin-top: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <label for="size-select">字級：</label>
+      <select id="size-select" onchange="applyBBCode('size')">
+        <option value="">選擇</option>
+        <option value="small">小</option>
+        <option value="normal">一般</option>
+        <option value="large">大</option>
+      </select>
+      <label for="color-select">字色：</label>
+      <select id="color-select" onchange="applyBBCode('color')">
+        <option value="">選擇</option>
+        <option value="red">紅</option>
+        <option value="blue">藍</option>
+        <option value="green">綠</option>
+      </select>
+      <label for="bgcolor-select">背景：</label>
+      <select id="bgcolor-select" onchange="applyBBCode('bgcolor')">
+        <option value="">選擇</option>
+        <option value="yellow">黃</option>
+        <option value="gray">灰</option>
+        <option value="none">無</option>
+      </select>
+      <button type="button" class="save-style-btn" onclick="saveCurrentStyle()">儲存為常用樣式</button>
+    </div>
+    <div class="favorite-styles-block">
+      <div class="fav-title">常用樣式：</div>
+      <div id="favorite-styles"></div>
+    </div>
+    <div class="editor-area">
+      <textarea id="bbcode-input" class="bbcode-editor" placeholder="請輸入內容，選取文字後可套用 BBCode 樣式"></textarea>
+      <div class="preview">
+        <div class="preview-title">即時預覽</div>
+        <div id="preview-content"></div>
+      </div>
+    </div>
+    <button class="copy-btn" onclick="copyBBCode()">複製 BBCode</button>
+  </div>
+  <script>
+    // 常用樣式功能
+    const MAX_FAV_STYLES = 10;
+    function getCurrentStyleObj() {
+      return {
+        size: document.getElementById('size-select').value || '',
+        color: document.getElementById('color-select').value || '',
+        bgcolor: document.getElementById('bgcolor-select').value || '',
+      };
+    }
+    function styleObjToLabel(style) {
+      let arr = [];
+      if (style.size) arr.push('字級:' + style.size);
+      if (style.color) arr.push('字色:' + style.color);
+      if (style.bgcolor && style.bgcolor !== 'none') arr.push('背景:' + style.bgcolor);
+      return arr.join(', ');
+    }
+    function saveCurrentStyle() {
+      const style = getCurrentStyleObj();
+      if (!style.size && !style.color && (!style.bgcolor || style.bgcolor === 'none')) {
+        alert('請至少選擇一項樣式');
+        return;
+      }
+      let favs = JSON.parse(localStorage.getItem('favoriteStyles') || '[]');
+      if (favs.length >= MAX_FAV_STYLES) {
+        alert('最多只能儲存10組常用樣式');
+        return;
+      }
+      let name = prompt('請輸入樣式名稱（必填）', styleObjToLabel(style));
+      if (!name) return;
+      favs.push({ ...style, name });
+      localStorage.setItem('favoriteStyles', JSON.stringify(favs));
+      renderFavoriteStyles();
+    }
+    function renderFavoriteStyles() {
+      let favs = JSON.parse(localStorage.getItem('favoriteStyles') || '[]');
+      const container = document.getElementById('favorite-styles');
+      container.innerHTML = '';
+      favs.forEach((style, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'fav-style-btn';
+        btn.type = 'button';
+        btn.title = styleObjToLabel(style);
+        btn.innerHTML = `<span>${style.name}</span>`;
+        btn.onclick = () => applyFavoriteStyle(idx);
+        // 移除按鈕
+        const rm = document.createElement('button');
+        rm.className = 'fav-style-remove';
+        rm.innerHTML = '✕';
+        rm.onclick = (e) => { e.stopPropagation(); removeFavoriteStyle(idx); };
+        btn.appendChild(rm);
+        container.appendChild(btn);
+      });
+    }
+    function applyFavoriteStyle(idx) {
+      let favs = JSON.parse(localStorage.getItem('favoriteStyles') || '[]');
+      const style = favs[idx];
+      if (!style) return;
+      // 設定 select
+      document.getElementById('size-select').value = style.size || '';
+      document.getElementById('color-select').value = style.color || '';
+      document.getElementById('bgcolor-select').value = style.bgcolor || '';
+      // 對選取文字套用全部 BBCode
+      applyMultiBBCode(style);
+    }
+    function applyMultiBBCode(style) {
+      const textarea = document.getElementById('bbcode-input');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      let selected = textarea.value.substring(start, end);
+      if (!selected) return;
+      let bbcode = selected;
+      if (style.bgcolor && style.bgcolor !== 'none') {
+        bbcode = `[bgcolor=${style.bgcolor}]${bbcode}[/bgcolor]`;
+      }
+      if (style.color) {
+        bbcode = `[color=${style.color}]${bbcode}[/color]`;
+      }
+      if (style.size) {
+        bbcode = `[size=${style.size}]${bbcode}[/size]`;
+      }
+      textarea.setRangeText(bbcode, start, end, 'end');
+      textarea.focus();
+      updatePreview();
+    }
+    function removeFavoriteStyle(idx) {
+      let favs = JSON.parse(localStorage.getItem('favoriteStyles') || '[]');
+      favs.splice(idx, 1);
+      localStorage.setItem('favoriteStyles', JSON.stringify(favs));
+      renderFavoriteStyles();
+    }
+    window.onload = renderFavoriteStyles;
+
+    // 工具列 BBCode 套用
+    function applyBBCode(type) {
+      const textarea = document.getElementById('bbcode-input');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      let selected = textarea.value.substring(start, end);
+      if (!selected) return;
+      let tag = '';
+      let value = '';
+      if (type === 'size') {
+        value = document.getElementById('size-select').value;
+        if (!value || value === 'normal') value = 'normal';
+        tag = `size=${value}`;
+      } else if (type === 'color') {
+        value = document.getElementById('color-select').value;
+        if (!value) return;
+        tag = `color=${value}`;
+      } else if (type === 'bgcolor') {
+        value = document.getElementById('bgcolor-select').value;
+        if (!value || value === 'none') {
+          // 移除已存在的背景 BBCode
+          textarea.setRangeText(selected.replace(/\[bgcolor=.+?\]([\s\S]*?)\[\/bgcolor\]/g, '$1'), start, end, 'end');
+          updatePreview();
+          return;
+        }
+        tag = `bgcolor=${value}`;
+      }
+      // 包裹 BBCode
+      const bbcode = `[${tag}]${selected}[/${tag.split('=')[0]}]`;
+      textarea.setRangeText(bbcode, start, end, 'end');
+      textarea.focus();
+      updatePreview();
+    }
+
+    // BBCode 解析為 HTML
+    function bbcodeToHtml(text) {
+      let html = text
+        .replace(/\[size=(small|normal|large)\]([\s\S]*?)\[\/size\]/gi, (match, size, content) => {
+          let fontSize = '16px';
+          if (size === 'small') fontSize = '13px';
+          else if (size === 'large') fontSize = '22px';
+          return `<span style="font-size:${fontSize}">${content}</span>`;
+        })
+        .replace(/\[color=(red|blue|green)\]([\s\S]*?)\[\/color\]/gi, (match, color, content) => {
+          let colorMap = { red: '#d32f2f', blue: '#1976d2', green: '#388e3c' };
+          return `<span style="color:${colorMap[color]}">${content}</span>`;
+        })
+        .replace(/\[bgcolor=(yellow|gray)\]([\s\S]*?)\[\/bgcolor\]/gi, (match, color, content) => {
+          let bgMap = { yellow: '#fff9c4', gray: '#e0e0e0' };
+          return `<span style="background:${bgMap[color]}">${content}</span>`;
+        })
+        .replace(/\n/g, '<br>');
+      return html;
+    }
+
+    // 更新預覽
+    function updatePreview() {
+      const input = document.getElementById('bbcode-input').value;
+      document.getElementById('preview-content').innerHTML = bbcodeToHtml(input);
+    }
+
+    document.getElementById('bbcode-input').addEventListener('input', updatePreview);
+
+    // 複製 BBCode
+    function copyBBCode() {
+      const textarea = document.getElementById('bbcode-input');
+      textarea.select();
+      document.execCommand('copy');
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      // 彈出提示
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '已複製！';
+      setTimeout(() => {
+        btn.textContent = '複製 BBCode';
+      }, 1200);
+    }
+    // 預設載入時預覽
+    updatePreview();
+  </script>
+</body>
+</html>
